@@ -1,0 +1,66 @@
+═══════════════════════════════════════════════════════════════
+  CÓMO CREAR EL EJECUTABLE - INSTRUCCIONES SIMPLES
+═══════════════════════════════════════════════════════════════
+
+OPCIÓN 1: MÉTODO MÁS FÁCIL (RECOMENDADO)
+─────────────────────────────────────────
+
+1. Haz DOBLE CLIC en el archivo: CREAR_EJECUTABLE.bat
+
+2. Espera a que termine (2-5 minutos)
+
+3. ¡Listo! El ejecutable estará en la carpeta "dist"
+   - Archivo: GestionClientes.exe
+   - Tamaño aproximado: 30-50 MB
+
+4. Copia el archivo .exe a cualquier computador y ejecútalo
+
+
+OPCIÓN 2: MÉTODO MANUAL
+────────────────────────
+
+Si el script automático no funciona, sigue estos pasos:
+
+1. Abre PowerShell o CMD en esta carpeta
+
+2. Instala PyInstaller:
+   pip install pyinstaller
+
+3. Crea el ejecutable:
+   pyinstaller --onefile --windowed --name "GestionClientes" app.py
+
+4. Busca el archivo en: dist\GestionClientes.exe
+
+
+REQUISITOS PREVIOS
+──────────────────
+
+✓ Python 3.7 o superior instalado
+✓ Conexión a internet (para descargar PyInstaller)
+
+
+NOTAS IMPORTANTES
+──────────────────
+
+• El ejecutable es grande (~30-50 MB) porque incluye Python
+• Funciona solo en Windows (para otros sistemas usa el método manual)
+• Algunos antivirus pueden dar falso positivo (es normal)
+• La primera ejecución puede tardar unos segundos
+
+
+PROBLEMAS COMUNES
+─────────────────
+
+❌ "Python no está instalado"
+   → Instala Python desde python.org
+   → Marca "Add Python to PATH" durante la instalación
+
+❌ "pip no se reconoce"
+   → Usa: python -m pip install pyinstaller
+
+❌ El antivirus bloquea el .exe
+   → Agrega una excepción en tu antivirus
+   → Es un falso positivo común con PyInstaller
+
+═══════════════════════════════════════════════════════════════
+
