@@ -9,6 +9,7 @@ Aplicación moderna de escritorio para gestionar clientes y calcular sus totales
 - 💰 Gestión de valores con botones predefinidos y valores personalizados
 - 🎨 Tema oscuro moderno
 - 📱 Diseño responsivo
+- ✅ Checkbox "Detalle" para marcar valores que se muestran entre paréntesis
 
 ## Requisitos del Sistema
 
@@ -146,6 +147,7 @@ Si quieres crear un archivo ejecutable que puedas copiar a cualquier computador 
 - **Agregar Cliente**: Ingresa un nombre y un valor inicial para crear un nuevo cliente
 - **Seleccionar Cliente**: Haz clic en el botón del cliente para seleccionarlo
 - **Agregar Valores**: Usa los botones de valores predefinidos o ingresa valores personalizados
+- **Checkbox Detalle**: Marca el checkbox "Detalle" antes de agregar un valor para que se muestre entre paréntesis en la tabla
 - **Eliminar Cliente**: Elimina el cliente seleccionado
 - **Eliminar Valores**: Elimina el último valor o un valor específico seleccionado en la tabla
 - **Visualización**: La tabla muestra todos los valores y el total de cada cliente
@@ -155,4 +157,4 @@ Si quieres crear un archivo ejecutable que puedas copiar a cualquier computador 
 - Los valores se formatean con separadores de miles (ej: $1,000)
 - La aplicación se maximiza automáticamente al iniciar
 - El tema oscuro se puede cambiar en el código modificando `ctk.set_appearance_mode()`
-
+- Los valores marcados como "Detalle" se muestran entre paréntesis en la tabla (ej: ($1,000))
