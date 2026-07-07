@@ -1,0 +1,8 @@
+{
+  "appId": "com.totales.jugandotoy",
+  "appName": "Totales - Gestión de Clientes",
+  "webDir": ".",
+  "server": {
+    "androidScheme": "https"
+  }
+}

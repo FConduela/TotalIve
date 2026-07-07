@@ -13,8 +13,21 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+/lib/
+/lib64/
+
+# Node / React Native
+node_modules/
+.expo/
+.expo-shared/
+
+# Flutter (carpetas generadas; lib/ del proyecto sí se versiona)
+totales_flutter/.dart_tool/
+totales_flutter/.packages
+totales_flutter/.pub/
+totales_flutter/build/
+totales_flutter/**/Generated.xcconfig
+totales_flutter/**/flutter_export_environment.sh
 parts/
 sdist/
 var/

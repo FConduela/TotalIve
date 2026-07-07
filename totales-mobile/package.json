@@ -1,0 +1,10 @@
+{
+  "name": "totales-jugandotoy",
+  "version": "1.0.0",
+  "description": "Gestión de Clientes - Totales (app móvil)",
+  "capacitor": {
+    "android": {
+      "allowMixedContent": true
+    }
+  }
+}

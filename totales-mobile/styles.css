@@ -1,0 +1,996 @@
+/* ===== Variables y base ===== */
+:root {
+  --bg-page: #1a1a2e;
+  --bg-card: #16213e;
+  --bg-input: #2b2b2b;
+  --border: #2a6ba0;
+  --text: #e8e8e8;
+  --text-muted: #a0a0a0;
+  --primary: #1f538d;
+  --primary-hover: #2a6ba0;
+  --success: #2FA572;
+  --success-hover: #228B5A;
+  --danger: #D32F2F;
+  --danger-hover: #B71C1C;
+  --warning: #FF6B35;
+  --warning-hover: #E55A2B;
+  --total-badge: #2196F3;
+  --selected: #4CAF50;
+  --radius: 10px;
+  --touch-min: 44px;
+  --safe-top: env(safe-area-inset-top, 0);
+  --safe-bottom: env(safe-area-inset-bottom, 0);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg-page);
+  color: var(--text);
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 10px;
+  padding-top: 0;
+  padding-bottom: max(10px, var(--safe-bottom));
+  overflow-x: hidden;
+}
+
+/* ===== Menú superior ===== */
+.menu-superior {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: var(--bg-card);
+  border-bottom: 2px solid var(--primary);
+  border-radius: var(--radius) var(--radius) 0 0;
+  margin: 0 -10px;
+  margin-bottom: 16px;
+  padding-top: var(--safe-top);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.menu-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--touch-min);
+  padding: 12px 16px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: background 0.2s, color 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  border-bottom: 3px solid transparent;
+}
+
+.menu-item:hover, .menu-item:focus-visible {
+  color: var(--text);
+  background: rgba(42, 107, 160, 0.2);
+}
+
+.menu-item.activo {
+  color: #fff;
+  background: var(--primary);
+  border-bottom-color: var(--selected);
+}
+
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ===== Navegación entre páginas ===== */
+.pagina {
+  display: none;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pagina.activa {
+  display: flex;
+}
+
+.btn-link-tabla {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  color: #fff;
+  text-decoration: none;
+  min-height: var(--touch-min);
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: background 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-link-tabla:hover, .btn-link-tabla:focus-visible {
+  background: var(--primary-hover);
+  color: #fff;
+}
+
+.btn-volver {
+  background: var(--text-muted);
+  color: var(--bg-page);
+  flex-shrink: 0;
+}
+
+.btn-volver:hover, .btn-volver:focus-visible {
+  background: var(--text);
+  color: var(--bg-page);
+}
+
+.pagina-tabla-header .section-header {
+  margin-bottom: 0;
+}
+
+.pagina-tabla-header .section-header h2 {
+  flex: 1;
+  text-align: center;
+}
+
+#pagina-tabla .section-tabla-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+#pagina-tabla .table-wrapper {
+  flex: 1;
+  min-height: 200px;
+}
+
+/* ===== Cards y secciones ===== */
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 15px;
+  border: 1px solid rgba(42, 107, 160, 0.3);
+}
+
+.section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.section-header h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.section-header-clientes {
+  flex-wrap: nowrap;
+}
+
+.section-header-clientes h2 {
+  flex: 1;
+  min-width: 0;
+}
+
+.btn-icon-only {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--touch-min);
+  min-height: var(--touch-min);
+  padding: 8px;
+}
+
+.btn-icon-only .icono-eliminar,
+.btn-icon-only .icono-persona-mas {
+  flex-shrink: 0;
+}
+
+/* Modal Nuevo Cliente */
+.modal-nuevo-cliente-caja {
+  max-width: min(360px, calc(100vw - 40px));
+}
+
+.modal-nuevo-cliente-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(42, 107, 160, 0.3);
+  margin-bottom: 16px;
+}
+
+.modal-nuevo-cliente-header .modal-titulo {
+  margin: 0;
+}
+
+.modal-nuevo-cliente-header .btn-cerrar-modal {
+  min-width: 40px;
+  min-height: 40px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.modal-nuevo-cliente-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal-nuevo-cliente-body .btn-add {
+  margin-top: 4px;
+}
+
+.badge {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.badge-total {
+  background: var(--total-badge);
+  color: #fff;
+}
+
+/* ===== Formularios ===== */
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.field-group {
+  flex: 1;
+  min-width: 120px;
+}
+
+.field-group label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--text-muted);
+}
+
+input[type="text"],
+input[type="number"] {
+  width: 100%;
+  padding: 12px 14px;
+  min-height: var(--touch-min);
+  font-size: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-input);
+  color: var(--text);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+input::placeholder {
+  color: var(--text-muted);
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(31, 83, 141, 0.3);
+}
+
+/* ===== Botones ===== */
+.btn {
+  min-height: var(--touch-min);
+  padding: 10px 18px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-add {
+  background: var(--success);
+  color: #fff;
+}
+
+.btn-add:hover, .btn-add:focus-visible {
+  background: var(--success-hover);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.btn-danger:hover, .btn-danger:focus-visible {
+  background: var(--danger-hover);
+}
+
+.btn-warning {
+  background: var(--warning);
+  color: #fff;
+}
+
+.btn-warning:hover, .btn-warning:focus-visible {
+  background: var(--warning-hover);
+}
+
+.btn-sm {
+  min-height: 36px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
+.btn-icon {
+  min-width: var(--touch-min);
+  padding: 10px;
+  font-size: 1.25rem;
+}
+
+.btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Panel clientes: botones por cliente */
+.cliente-item {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  min-width: 0;
+}
+
+.btn-cliente {
+  background: var(--primary);
+  color: #fff;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 140px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btn-cliente:hover, .btn-cliente:focus-visible {
+  background: var(--primary-hover);
+}
+
+.btn-cliente.selected {
+  background: var(--selected);
+}
+
+.btn-cliente.selected:hover {
+  background: #45a049;
+}
+
+.cliente-datos {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.cliente-total, .cliente-cantidad {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.cliente-total { color: var(--success); }
+.cliente-cantidad { color: var(--warning); }
+
+/* Botones de valores predefinidos */
+.valores-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.btn-valor {
+  background: var(--primary);
+  color: #fff;
+  min-height: 40px;
+  font-weight: 700;
+}
+
+.btn-valor:hover, .btn-valor:focus-visible {
+  background: var(--primary-hover);
+}
+
+.valor-personalizado {
+  margin-top: 8px;
+}
+
+.valor-personalizado input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Header panel valores */
+.section-valores-header {
+  flex-wrap: wrap;
+}
+
+.detalle-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.detalle-option label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+#check-detalle {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+/* ===== Tabla ===== */
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -4px;
+  border-radius: 8px;
+  border: 1px solid rgba(42, 107, 160, 0.2);
+}
+
+.tabla-clientes {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.tabla-clientes th,
+.tabla-clientes td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  white-space: nowrap;
+}
+
+.tabla-clientes th {
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.tabla-clientes tbody tr {
+  background: var(--bg-input);
+}
+
+.tabla-clientes tbody tr:nth-child(even) {
+  background: rgba(43, 43, 43, 0.6);
+}
+
+.tabla-clientes tbody tr.selected {
+  background: rgba(76, 175, 80, 0.25);
+}
+
+.tabla-clientes td.celda-valor {
+  cursor: pointer;
+  min-width: 90px;
+}
+
+.tabla-clientes td.celda-valor:active {
+  background: rgba(76, 175, 80, 0.4);
+}
+
+.col-nombre {
+  min-width: 120px;
+  position: sticky;
+  left: 0;
+  background: var(--primary);
+  z-index: 2;
+}
+
+.tabla-clientes tbody td.col-nombre {
+  position: sticky;
+  left: 0;
+  background: var(--bg-input);
+  z-index: 1;
+}
+
+.tabla-clientes tbody tr:nth-child(even) td.col-nombre {
+  background: rgba(43, 43, 43, 0.6);
+}
+
+.tabla-clientes tbody tr.selected td.col-nombre {
+  background: rgba(76, 175, 80, 0.25);
+}
+
+.col-total {
+  min-width: 100px;
+  font-weight: 700;
+  background: rgba(33, 150, 243, 0.2);
+}
+
+.tabla-clientes tbody td.col-total {
+  background: rgba(33, 150, 243, 0.15);
+  font-weight: 700;
+}
+
+.indicador-valor {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--selected);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.indicador-valor:empty {
+  display: none;
+}
+
+/* ===== Paneles lado a lado en desktop ===== */
+.paneles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.scroll-list {
+  max-height: 280px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ===== Modal confirmación ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.modal-overlay[hidden] {
+  display: none;
+}
+
+.modal-caja {
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 24px;
+  max-width: 360px;
+  width: 100%;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.modal-titulo {
+  margin: 0 0 12px;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.modal-texto {
+  margin: 0 0 20px;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.modal-botones {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.modal-botones .btn {
+  min-width: 100px;
+}
+
+/* Modal eliminar cliente: mismo estilo iconos verde/rojo */
+.modal-eliminar-cliente-caja {
+  max-width: min(360px, calc(100vw - 40px));
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.modal-eliminar-cliente-caja .modal-titulo {
+  margin-bottom: 20px;
+  word-wrap: break-word;
+}
+
+/* Modal eliminar valor: solo iconos, verde/rojo, sin salir del modal */
+.modal-eliminar-valor-caja {
+  max-width: min(360px, calc(100vw - 40px));
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.modal-eliminar-valor-caja .modal-titulo {
+  margin-bottom: 20px;
+  word-wrap: break-word;
+}
+
+.modal-botones-iconos {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.modal-botones-iconos .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.btn-modal-rechazar {
+  background: var(--danger);
+  color: #fff;
+}
+
+.btn-modal-rechazar:hover,
+.btn-modal-rechazar:focus-visible {
+  background: var(--danger-hover);
+  color: #fff;
+}
+
+.btn-modal-aceptar {
+  background: var(--success);
+  color: #fff;
+}
+
+.btn-modal-aceptar:hover,
+.btn-modal-aceptar:focus-visible {
+  background: var(--success-hover);
+  color: #fff;
+}
+
+/* Modal Valores (sección valores como modal) */
+.paneles-solo-clientes {
+  display: block;
+}
+
+.paneles-solo-clientes .panel-clientes {
+  width: 100%;
+}
+
+.total-general-debajo {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+
+.total-general-debajo .badge-total {
+  margin: 0;
+}
+
+.modal-valores-caja {
+  max-width: 420px;
+  max-height: 90vh;
+  max-height: 90dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.modal-valores-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(42, 107, 160, 0.3);
+  flex-shrink: 0;
+}
+
+.modal-valores-header .btn {
+  width: auto;
+}
+
+.modal-valores-header .btn-cerrar-modal-valores {
+  min-width: 40px;
+  min-height: 40px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.modal-valores-header .modal-titulo {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.modal-valores-body {
+  padding: 16px 20px 20px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal-valores-body .section-valores-header {
+  margin-bottom: 12px;
+}
+
+.modal-valores-body .valores-grid {
+  margin-bottom: 12px;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.modal-valores-body .valores-grid .btn-valor {
+  width: 100%;
+  min-width: 0;
+}
+
+.modal-valores-body .valor-personalizado {
+  margin-top: 8px;
+}
+
+/* Toast: indicador visual (agregar valor, eliminar valor, eliminar cliente) */
+.toast-mensaje {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  max-width: calc(100vw - 40px);
+  padding: 12px 20px;
+  background: var(--success);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-align: center;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  z-index: 1100;
+}
+
+.toast-mensaje.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.toast-mensaje.toast-eliminado {
+  background: var(--warning);
+}
+
+.toast-mensaje.toast-eliminado.visible {
+  transform: translateX(-50%) translateY(0);
+}
+
+/* En móvil: toast en el centro de la pantalla */
+@media (max-width: 600px) {
+  .toast-mensaje {
+    bottom: auto;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) translateY(10px);
+  }
+
+  .toast-mensaje.visible {
+    transform: translate(-50%, -50%) translateY(0);
+  }
+
+  .toast-mensaje.toast-eliminado.visible {
+    transform: translate(-50%, -50%) translateY(0);
+  }
+}
+
+.modal-valores-caja {
+  position: relative;
+}
+
+/* ===== Responsive: Tablet (600px - 1024px) ===== */
+@media (max-width: 1024px) {
+  .paneles {
+    grid-template-columns: 1fr;
+  }
+
+  .form-nuevo-cliente {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .form-nuevo-cliente .btn-add {
+    width: 100%;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .section-header-clientes {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .tabla-clientes th, .tabla-clientes td {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+  }
+
+  .col-nombre { min-width: 100px; }
+  .tabla-clientes td.celda-valor { min-width: 80px; }
+}
+
+/* ===== Responsive: Smartphone (< 600px) ===== */
+@media (max-width: 600px) {
+  body {
+    padding: 8px;
+  }
+
+  .app {
+    gap: 12px;
+  }
+
+  .card {
+    padding: 12px;
+  }
+
+  .section-header h2 {
+    font-size: 1.05rem;
+  }
+
+  .badge {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+  }
+
+  .form-row.form-nuevo-cliente {
+    flex-direction: column;
+  }
+
+  .field-group {
+    min-width: 100%;
+  }
+
+  input[type="text"], input[type="number"] {
+    padding: 10px 12px;
+    font-size: 16px; /* evita zoom en iOS */
+  }
+
+  .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .modal-valores-header .btn {
+    width: auto;
+  }
+
+  .section-header-clientes {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .section-header-clientes .btn-icon-only {
+    width: auto;
+    min-width: var(--touch-min);
+    flex-shrink: 0;
+  }
+
+  .section-valores-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .section-valores-header .btn-group {
+    width: auto;
+    flex-shrink: 0;
+  }
+
+  .section-valores-header .btn-group .btn {
+    width: auto;
+  }
+
+  .btn-group .btn {
+    width: auto;
+  }
+
+  .valores-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+
+  .modal-valores-body .valores-grid .btn-valor {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .btn-valor {
+    min-height: 44px;
+    font-size: 1rem;
+  }
+
+  .cliente-item {
+    flex-wrap: nowrap;
+  }
+
+  .btn-cliente {
+    max-width: 120px;
+    font-size: 0.85rem;
+    padding: 6px 10px;
+  }
+
+  .tabla-clientes th, .tabla-clientes td {
+    padding: 6px 8px;
+    font-size: 0.8rem;
+  }
+
+  .col-nombre { min-width: 90px; }
+  .tabla-clientes td.celda-valor { min-width: 72px; }
+  .col-total { min-width: 80px; }
+
+  .indicador-valor {
+    max-width: 100%;
+    font-size: 0.8rem;
+  }
+}
+
+/* ===== Pantallas muy pequeñas (< 380px) ===== */
+@media (max-width: 380px) {
+  .modal-valores-body .valores-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .modal-valores-body .valores-grid .btn-valor {
+    width: 100%;
+  }
+}
