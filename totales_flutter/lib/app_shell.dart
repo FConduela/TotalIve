@@ -20,9 +20,11 @@ class _AppShellState extends State<AppShell> {
 
   bool _modalNuevoCliente = false;
   bool _modalValores = false;
+  bool _modalTabla = false;
   bool _modalEliminarCliente = false;
   bool _modalEliminarValor = false;
   bool _modalCerrarJornada = false;
+  bool _modalCerrarTotales = false;
   ({String nombre, List<int>? indices})? _despacharConfirmar;
 
   void _toast(String text) {
@@ -55,13 +57,10 @@ class _AppShellState extends State<AppShell> {
                 onAbrirNuevoCliente: () => setState(() => _modalNuevoCliente = true),
                 onAbrirValores: _showValoresDialog,
                 onCerrarJornada: () => setState(() => _modalCerrarJornada = true),
+                onAbrirTabla: () => setState(() => _modalTabla = true),
               ),
-              TablaScreen(
-                onAbrirEliminarValor: () {
-                  if (state.valorSeleccionado != null) {
-                    setState(() => _modalEliminarValor = true);
-                  }
-                },
+              TotalesScreen(
+                onCerrarTotales: () => setState(() => _modalCerrarTotales = true),
               ),
               GestionEnviosScreen(
                 onMarcarComoEnviado: (nombre, indices) {
@@ -80,9 +79,9 @@ class _AppShellState extends State<AppShell> {
                 label: 'Inicio',
               ),
               NavigationDestination(
-                icon: Icon(Icons.grid_view_outlined),
-                selectedIcon: Icon(Icons.grid_view),
-                label: 'Tabla',
+                icon: Icon(Icons.receipt_long_outlined),
+                selectedIcon: Icon(Icons.receipt_long),
+                label: 'Totales',
               ),
               NavigationDestination(
                 icon: Icon(Icons.inventory_2_outlined),
@@ -92,6 +91,7 @@ class _AppShellState extends State<AppShell> {
             ],
           ),
         ),
+        if (_modalTabla) _buildOverlayTabla(),
         if (_modalNuevoCliente) _buildOverlayNuevoCliente(),
         if (_modalValores) _buildOverlayValores(),
         if (_modalEliminarCliente) _buildOverlayConfirmar(
@@ -130,6 +130,23 @@ class _AppShellState extends State<AppShell> {
                 cantidadBolsas > 0
                     ? 'Se generaron $cantidadBolsas bolsa${cantidadBolsas != 1 ? 's' : ''}'
                     : 'Jornada cerrada',
+              );
+            },
+          ),
+        if (_modalCerrarTotales)
+          _buildOverlayConfirmar(
+            titulo:
+                'Se enviarán los totales pendientes a la pantalla de envíos. ¿Continuar?',
+            onCancelar: () => setState(() => _modalCerrarTotales = false),
+            onConfirmar: () {
+              final st = context.read<TotalesState>();
+              final cantidad = st.cantidadTotalesPendientes;
+              st.cerrarTotales();
+              setState(() => _modalCerrarTotales = false);
+              _toast(
+                cantidad > 0
+                    ? '$cantidad cliente${cantidad != 1 ? 's' : ''} enviado${cantidad != 1 ? 's' : ''} a envíos'
+                    : 'Sin totales que cerrar',
               );
             },
           ),
@@ -234,12 +251,116 @@ class _AppShellState extends State<AppShell> {
     );
   }
 
+  Widget _buildOverlayTabla() {
+    final state = context.watch<TotalesState>();
+    final vs = state.valorSeleccionado;
+    String textoEliminar = 'Eliminar Valor';
+    if (vs != null) {
+      final nombre = vs.nombre;
+      final indice = vs.indice;
+      final vals = state.clientes[nombre];
+      if (vals != null && indice >= 0 && indice < vals.length) {
+        textoEliminar = 'Eliminar ${formatMoney(vals[indice])} ($nombre)';
+      }
+    }
+
+    return Material(
+      color: Colors.black54,
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0x592A6BA0)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Tabla de Clientes',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.text,
+                          ),
+                        ),
+                      ),
+                      Material(
+                        color: AppColors.danger,
+                        borderRadius: BorderRadius.circular(8),
+                        child: InkWell(
+                          onTap: () => setState(() => _modalTabla = false),
+                          borderRadius: BorderRadius.circular(8),
+                          child: const SizedBox(
+                            width: 40,
+                            height: 40,
+                            child: Center(
+                              child: Text(
+                                '✕',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Expanded(child: _TablaModalContent()),
+                  const SizedBox(height: 10),
+                  Center(
+                    child: FilledButton(
+                      onPressed: () {
+                        if (state.valorSeleccionado != null) {
+                          setState(() => _modalEliminarValor = true);
+                        }
+                      },
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.warning,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      ),
+                      child: Text(
+                        textoEliminar,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildOverlayNuevoCliente() {
+    final sugerencias = context.watch<TotalesState>().sugerenciasNuevoCliente;
     return _NuevoClienteOverlay(
+      sugerencias: sugerencias,
       onClose: () => setState(() => _modalNuevoCliente = false),
       onAgregar: (nombre, valor) {
-        context.read<TotalesState>().agregarCliente(nombre, valor);
-        setState(() => _modalNuevoCliente = false);
+        final agregado = context.read<TotalesState>().agregarCliente(nombre, valor);
+        if (agregado) {
+          setState(() => _modalNuevoCliente = false);
+        }
+        return agregado;
       },
     );
   }
@@ -257,6 +378,7 @@ class _AppShellState extends State<AppShell> {
       },
       onAgregarValor: (valor, esDetalle) {
         context.read<TotalesState>().agregarValor(valor, esDetalle);
+        setState(() => _modalValores = false);
         _toast('Valor agregado: ${formatMoney(valor)}');
       },
     );
@@ -265,20 +387,60 @@ class _AppShellState extends State<AppShell> {
 
 class _NuevoClienteOverlay extends StatefulWidget {
   const _NuevoClienteOverlay({
+    required this.sugerencias,
     required this.onClose,
     required this.onAgregar,
   });
 
+  final List<String> sugerencias;
   final VoidCallback onClose;
-  final void Function(String nombre, int valor) onAgregar;
+  final bool Function(String nombre, int valor) onAgregar;
 
   @override
   State<_NuevoClienteOverlay> createState() => _NuevoClienteOverlayState();
 }
 
 class _NuevoClienteOverlayState extends State<_NuevoClienteOverlay> {
+  static const _alturaItemSugerencia = 44.0;
+  static const _maxSugerencias = 6;
+
   final _nombre = TextEditingController();
   final _valor = TextEditingController();
+  String? _errorCliente;
+
+  List<String> get _sugerenciasFiltradas {
+    final query = _nombre.text;
+    if (query.isEmpty) return const [];
+    final queryNorm = _normalizarTexto(query);
+    return widget.sugerencias
+        .where((n) {
+          final nombreNorm = _normalizarTexto(n);
+          return nombreNorm.startsWith(queryNorm) && nombreNorm != queryNorm;
+        })
+        .take(_maxSugerencias)
+        .toList();
+  }
+
+  double get _alturaBarraSugerencias =>
+      _sugerenciasFiltradas.length * _alturaItemSugerencia;
+
+  String _normalizarTexto(String text) {
+    const conAcento = 'áéíóúüñàèìòùâêîôûäëïöü';
+    const sinAcento = 'aeiouunaeiouaeiouaeiou';
+    var result = text.toLowerCase();
+    for (var i = 0; i < conAcento.length; i++) {
+      result = result.replaceAll(conAcento[i], sinAcento[i]);
+    }
+    return result;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _nombre.addListener(() {
+      setState(() => _errorCliente = null);
+    });
+  }
 
   @override
   void dispose() {
@@ -291,18 +453,92 @@ class _NuevoClienteOverlayState extends State<_NuevoClienteOverlay> {
     final n = _nombre.text.trim();
     final v = int.tryParse(_valor.text.trim());
     if (n.isEmpty || v == null) return;
-    widget.onAgregar(n, v);
+    final agregado = widget.onAgregar(n, v);
+    if (!agregado) {
+      setState(() => _errorCliente = 'El cliente ingresado ya existe');
+      return;
+    }
     _nombre.clear();
     _valor.clear();
+    _errorCliente = null;
+  }
+
+  Widget _buildBarraSugerencias() {
+    final items = _sugerenciasFiltradas;
+    if (items.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.input,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: SizedBox(
+            height: _alturaBarraSugerencias,
+            child: Column(
+              children: [
+                for (var i = 0; i < items.length; i++)
+                  SizedBox(
+                    height: _alturaItemSugerencia,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        border: i < items.length - 1
+                            ? const Border(
+                                bottom: BorderSide(color: Color(0x332A6BA0)),
+                              )
+                            : null,
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            final nombre = items[i];
+                            _nombre.text = nombre;
+                            _nombre.selection = TextSelection.collapsed(
+                              offset: nombre.length,
+                            );
+                          },
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              child: Text(
+                                items[i],
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: AppColors.text,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.black54,
-      child: Center(
+      child: Align(
+        alignment: Alignment.topCenter,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.only(left: 24, right: 24, top: 60, bottom: 24),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 360),
             child: DecoratedBox(
@@ -346,7 +582,9 @@ class _NuevoClienteOverlayState extends State<_NuevoClienteOverlay> {
                       style: const TextStyle(color: AppColors.text, fontSize: 16),
                       decoration: _inputDeco('Ingresa el nombre...'),
                       textCapitalization: TextCapitalization.sentences,
+                      onChanged: (_) => setState(() {}),
                     ),
+                    _buildBarraSugerencias(),
                     const SizedBox(height: 14),
                     const Text(
                       'Valor Inicial',
@@ -363,16 +601,32 @@ class _NuevoClienteOverlayState extends State<_NuevoClienteOverlay> {
                       style: const TextStyle(color: AppColors.text, fontSize: 16),
                       decoration: _inputDeco('Valor...'),
                     ),
+                    if (_errorCliente != null) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        _errorCliente!,
+                        style: const TextStyle(
+                          color: AppColors.danger,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     FilledButton(
                       onPressed: _agregar,
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.success,
+                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                       child: const Text(
                         '+ Agregar Cliente',
-                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],
@@ -550,18 +804,22 @@ class _ValoresOverlayState extends State<_ValoresOverlay> {
                         mainAxisSpacing: 8,
                         crossAxisSpacing: 8,
                         childAspectRatio: 3.4,
-                        physics: const NeverScrollableScrollPhysics(),
                         children: valoresBotones
                             .map(
                               (v) => FilledButton(
                                 onPressed: () => _agregar(v),
                                 style: FilledButton.styleFrom(
                                   backgroundColor: AppColors.primary,
+                                  foregroundColor: Colors.white,
                                   padding: EdgeInsets.zero,
                                 ),
                                 child: Text(
                                   '$v',
-                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                             )
@@ -611,6 +869,167 @@ class _ValoresOverlayState extends State<_ValoresOverlay> {
                   ],
                 ),
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+const int _maxColumnasModal = 100;
+
+class _TablaModalContent extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<TotalesState>();
+    final nombres = state.ordenClientes;
+    final maxValores = nombres.isEmpty
+        ? 1
+        : nombres
+            .map((n) => (state.clientes[n] ?? const <int>[]).length)
+            .reduce((a, b) => a > b ? a : b)
+            .clamp(1, _maxColumnasModal);
+    final valorSel = state.valorSeleccionado;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: SingleChildScrollView(
+          child: Table(
+            defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+            columnWidths: {
+              0: const FixedColumnWidth(120),
+              for (var c = 1; c <= maxValores; c++) c: const FixedColumnWidth(76),
+              maxValores + 1: const FixedColumnWidth(92),
+            },
+            children: [
+              TableRow(
+                decoration: const BoxDecoration(color: AppColors.primary),
+                children: [
+                  _tablaHeader('Nombre'),
+                  for (var i = 0; i < maxValores; i++) _tablaHeader('V${i + 1}'),
+                  _tablaHeader('Total'),
+                ],
+              ),
+              for (var rowIndex = 0; rowIndex < nombres.length; rowIndex++)
+                _buildTablaRow(context, state, nombres[rowIndex], rowIndex, maxValores, valorSel),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Widget _tablaHeader(String t) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      child: Text(
+        t,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+          fontSize: 13,
+        ),
+      ),
+    );
+  }
+
+  static TableRow _buildTablaRow(
+    BuildContext context,
+    TotalesState state,
+    String nombre,
+    int rowIndex,
+    int maxValores,
+    ({String nombre, int indice})? valorSel,
+  ) {
+    final valores = state.clientes[nombre] ?? const <int>[];
+    final detalles = state.detalles[nombre] ?? const <bool>[];
+    final total = valores.fold<int>(0, (a, b) => a + b);
+    final filaSelected = valorSel != null && valorSel.nombre == nombre;
+    final esPar = rowIndex.isEven;
+    final bg = filaSelected
+        ? const Color(0x384CAF50)
+        : (esPar ? const Color(0x992B2B2B) : const Color(0xCC212121));
+
+    return TableRow(
+      decoration: BoxDecoration(
+        color: bg,
+        border: const Border(bottom: BorderSide(color: Color(0x0FFFFFFF))),
+      ),
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+          child: Text(
+            nombre,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: AppColors.text,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        for (var i = 0; i < maxValores; i++)
+          _celdaValorModal(context, nombre, i, valores, detalles, valorSel),
+        DecoratedBox(
+          decoration: const BoxDecoration(color: Color(0x2E2196F3)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+            child: Text(
+              formatMoney(total),
+              textAlign: TextAlign.right,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.text,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  static Widget _celdaValorModal(
+    BuildContext context,
+    String nombre,
+    int i,
+    List<int> valores,
+    List<bool> detalles,
+    ({String nombre, int indice})? valorSel,
+  ) {
+    final val = i < valores.length ? valores[i] : null;
+    final esDetalle = i < detalles.length && detalles[i];
+    final celdaSelected =
+        valorSel != null && valorSel.nombre == nombre && valorSel.indice == i;
+
+    return Material(
+      color: celdaSelected ? const Color(0x804CAF50) : Colors.transparent,
+      child: InkWell(
+        onTap: val != null
+            ? () => context.read<TotalesState>().seleccionarValorTabla(nombre, i)
+            : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              val == null
+                  ? ''
+                  : (esDetalle ? '(${formatMoney(val)})' : formatMoney(val)),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: esDetalle ? AppColors.textMuted : AppColors.text,
+                fontSize: 13,
+                fontStyle: esDetalle ? FontStyle.italic : FontStyle.normal,
+              ),
+              textAlign: TextAlign.right,
             ),
           ),
         ),

@@ -35,9 +35,11 @@ class TotalesState extends ChangeNotifier {
   Map<String, List<int>> clientes = {};
   Map<String, List<bool>> detalles = {};
   List<String> clienteOrden = [];
+  List<String> historialClientes = [];
   String? clienteSeleccionado;
   ({String nombre, int indice})? valorSeleccionado;
   Map<String, List<Bolsa>> enviosPendientes = {};
+  Map<String, int> totalesPendientes = {};
 
   bool _hydrated = false;
 
@@ -52,21 +54,26 @@ class TotalesState extends ChangeNotifier {
   }
 
   List<String> get ordenClientes {
-    bool tieneVentasOEnvios(String n) =>
+    bool tieneActividad(String n) =>
         (clientes[n]?.isNotEmpty ?? false) ||
+        totalesPendientes.containsKey(n) ||
         (enviosPendientes[n]?.isNotEmpty ?? false);
 
-    final ordenados = clienteOrden.where(tieneVentasOEnvios).toList();
+    final ordenados = clienteOrden.where(tieneActividad).toList();
     final keysClientes =
         clientes.keys.where((n) => (clientes[n]?.isNotEmpty ?? false)).toList();
+    final keysTotales = totalesPendientes.keys.toList();
     final keysEnvios = enviosPendientes.keys
         .where((n) => (enviosPendientes[n]?.isNotEmpty ?? false))
         .toList();
-    final todas = {...keysClientes, ...keysEnvios};
+    final todas = {...keysClientes, ...keysTotales, ...keysEnvios};
     final restantes =
         todas.where((n) => !clienteOrden.contains(n)).toList();
     return [...ordenados, ...restantes];
   }
+
+  /// Nombres de clientes activos, para autocompletar al crear un cliente nuevo.
+  List<String> get sugerenciasNuevoCliente => ordenClientes;
 
   Future<void> _load() async {
     try {
@@ -88,7 +95,12 @@ class TotalesState extends ChangeNotifier {
             ?.map((e) => e.toString())
             .toList() ??
         [];
+    historialClientes = (data['historialClientes'] as List<dynamic>?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        [];
     enviosPendientes = _parseEnvios(data['enviosPendientes']);
+    totalesPendientes = _parseTotalesPendientes(data['totalesPendientes']);
     clienteSeleccionado = null;
     valorSeleccionado = null;
   }
@@ -122,6 +134,15 @@ class TotalesState extends ChangeNotifier {
     return m;
   }
 
+  Map<String, int> _parseTotalesPendientes(dynamic v) {
+    if (v == null) return {};
+    final m = <String, int>{};
+    (v as Map<String, dynamic>).forEach((k, val) {
+      m[k] = (val as num).toInt();
+    });
+    return m;
+  }
+
   Future<void> _persist() async {
     if (!_hydrated) return;
     try {
@@ -130,6 +151,8 @@ class TotalesState extends ChangeNotifier {
         'clientes': clientes,
         'detalles': detalles,
         'clienteOrden': clienteOrden,
+        'historialClientes': historialClientes,
+        'totalesPendientes': totalesPendientes,
         'enviosPendientes': enviosPendientes.map(
           (k, v) => MapEntry(
             k,
@@ -141,13 +164,36 @@ class TotalesState extends ChangeNotifier {
     } catch (_) {}
   }
 
-  void agregarCliente(String nombre, int valor) {
-    if (clientes.containsKey(nombre)) return;
+  bool _clienteTieneVentasActivas(String nombre) =>
+      clientes[nombre]?.isNotEmpty ?? false;
+
+  bool _clienteTieneEnviosPendientes(String nombre) =>
+      enviosPendientes[nombre]?.isNotEmpty ?? false;
+
+  void _registrarEnHistorial(String nombre) {
+    historialClientes = [nombre, ...historialClientes.where((n) => n != nombre)];
+  }
+
+  void _limpiarClienteInactivo(String nombre) {
+    if (_clienteTieneVentasActivas(nombre) || _clienteTieneEnviosPendientes(nombre)) {
+      return;
+    }
+    clientes.remove(nombre);
+    detalles.remove(nombre);
+    clienteOrden = clienteOrden.where((n) => n != nombre).toList();
+  }
+
+  bool agregarCliente(String nombre, int valor) {
+    if (_clienteTieneVentasActivas(nombre) || _clienteTieneEnviosPendientes(nombre)) {
+      return false;
+    }
     clientes[nombre] = [valor];
     detalles[nombre] = [false];
+    _registrarEnHistorial(nombre);
     clienteOrden = [nombre, ...clienteOrden.where((n) => n != nombre)];
     _persist();
     notifyListeners();
+    return true;
   }
 
   void seleccionarCliente(String? nombre) {
@@ -158,8 +204,11 @@ class TotalesState extends ChangeNotifier {
 
   void agregarValor(int valor, bool esDetalle) {
     final nombre = clienteSeleccionado;
-    if (nombre == null || !clientes.containsKey(nombre)) return;
-    clientes[nombre] = [...clientes[nombre]!, valor];
+    if (nombre == null) return;
+    final existeEnClientes = clientes.containsKey(nombre);
+    final existeEnEnvios = enviosPendientes.containsKey(nombre);
+    if (!existeEnClientes && !existeEnEnvios) return;
+    clientes[nombre] = [...(clientes[nombre] ?? []), valor];
     detalles[nombre] = [...(detalles[nombre] ?? []), esDetalle];
     clienteOrden = [nombre, ...clienteOrden.where((n) => n != nombre)];
     _persist();
@@ -168,7 +217,10 @@ class TotalesState extends ChangeNotifier {
 
   void eliminarCliente() {
     final nombre = clienteSeleccionado;
-    if (nombre == null || !clientes.containsKey(nombre)) return;
+    if (nombre == null) return;
+    final existeEnClientes = clientes.containsKey(nombre);
+    final existeEnEnvios = enviosPendientes.containsKey(nombre);
+    if (!existeEnClientes && !existeEnEnvios) return;
     clientes.remove(nombre);
     detalles.remove(nombre);
     enviosPendientes.remove(nombre);
@@ -228,33 +280,57 @@ class TotalesState extends ChangeNotifier {
     );
     syncCerrarJornada(snapshot);
 
-    final fecha = DateTime.now().toIso8601String().split('T').first;
     final nextClientes = Map<String, List<int>>.from(clientes);
     final nextDetalles = Map<String, List<bool>>.from(detalles);
-    final nextEnvios = Map<String, List<Bolsa>>.from(enviosPendientes);
+    final nextTotales = Map<String, int>.from(totalesPendientes);
 
     for (final nombre in clientes.keys.toList()) {
       final valores = clientes[nombre] ?? [];
       if (valores.isEmpty) continue;
       final montoTotal = valores.fold<int>(0, (a, b) => a + b);
-      final bolsa = Bolsa(
-        fecha: fecha,
-        cantidadItems: valores.length,
-        montoTotal: montoTotal,
-      );
-      nextEnvios[nombre] = [...(nextEnvios[nombre] ?? []), bolsa];
-      nextClientes[nombre] = [];
-      nextDetalles[nombre] = [];
+      nextTotales[nombre] = (nextTotales[nombre] ?? 0) + montoTotal;
+      nextClientes.remove(nombre);
+      nextDetalles.remove(nombre);
     }
 
     clientes = nextClientes;
     detalles = nextDetalles;
-    enviosPendientes = nextEnvios;
+    totalesPendientes = nextTotales;
     clienteSeleccionado = null;
     valorSeleccionado = null;
     _persist();
     notifyListeners();
   }
+
+  void editarTotalPendiente(String nombre, int ajuste) {
+    if (!totalesPendientes.containsKey(nombre)) return;
+    totalesPendientes[nombre] = totalesPendientes[nombre]! + ajuste;
+    _persist();
+    notifyListeners();
+  }
+
+  void cerrarTotales() {
+    final fecha = DateTime.now().toIso8601String().split('T').first;
+    final nextEnvios = Map<String, List<Bolsa>>.from(enviosPendientes);
+
+    for (final entry in totalesPendientes.entries) {
+      final nombre = entry.key;
+      final monto = entry.value;
+      final bolsa = Bolsa(
+        fecha: fecha,
+        cantidadItems: 1,
+        montoTotal: monto,
+      );
+      nextEnvios[nombre] = [...(nextEnvios[nombre] ?? []), bolsa];
+    }
+
+    totalesPendientes = {};
+    enviosPendientes = nextEnvios;
+    _persist();
+    notifyListeners();
+  }
+
+  int get cantidadTotalesPendientes => totalesPendientes.length;
 
   void despachar(String nombre, {List<int>? indices}) {
     if (!enviosPendientes.containsKey(nombre)) return;
@@ -275,6 +351,7 @@ class TotalesState extends ChangeNotifier {
         enviosPendientes[nombre] = remaining;
       }
     }
+    _limpiarClienteInactivo(nombre);
     _persist();
     notifyListeners();
   }
@@ -283,6 +360,8 @@ class TotalesState extends ChangeNotifier {
     clientes = {};
     detalles = {};
     clienteOrden = [];
+    historialClientes = [];
+    totalesPendientes = {};
     enviosPendientes = {};
     clienteSeleccionado = null;
     valorSeleccionado = null;

@@ -15,8 +15,15 @@ class GestionEnviosScreen extends StatefulWidget {
 }
 
 class _GestionEnviosScreenState extends State<GestionEnviosScreen> {
-  /// Por cliente: índices de bolsas seleccionadas; si no hay entrada, todas están seleccionadas (null en lógica RN = todas).
   final Map<String, List<int>> _seleccionados = {};
+  final _buscarController = TextEditingController();
+  String _filtro = '';
+
+  @override
+  void dispose() {
+    _buscarController.dispose();
+    super.dispose();
+  }
 
   void _toggleBolsa(String nombre, int idx, int totalBolsas) {
     setState(() {
@@ -48,6 +55,12 @@ class _GestionEnviosScreenState extends State<GestionEnviosScreen> {
       final bolsas = envios[nombre] ?? const <Bolsa>[];
       return acc + bolsas.fold<int>(0, (s, b) => s + b.cantidadItems);
     });
+
+    final clientesFiltrados = _filtro.isEmpty
+        ? clientesConEnvios
+        : clientesConEnvios
+            .where((n) => n.toLowerCase().contains(_filtro.toLowerCase()))
+            .toList();
 
     if (clientesConEnvios.isEmpty) {
       return SafeArea(
@@ -108,7 +121,42 @@ class _GestionEnviosScreenState extends State<GestionEnviosScreen> {
                 Expanded(child: _resumenCard('$totalProductos', 'Total Productos')),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _buscarController,
+              onChanged: (v) => setState(() => _filtro = v.trim()),
+              style: const TextStyle(color: AppColors.text, fontSize: 15),
+              decoration: InputDecoration(
+                hintText: 'Buscar cliente...',
+                hintStyle: const TextStyle(color: AppColors.textMuted),
+                prefixIcon: const Icon(Icons.search, color: AppColors.textMuted, size: 20),
+                suffixIcon: _filtro.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear, color: AppColors.textMuted, size: 20),
+                        onPressed: () {
+                          _buscarController.clear();
+                          setState(() => _filtro = '');
+                        },
+                      )
+                    : null,
+                filled: true,
+                fillColor: AppColors.input,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             const Text(
               'Lista de pendientes',
               style: TextStyle(
@@ -122,9 +170,9 @@ class _GestionEnviosScreenState extends State<GestionEnviosScreen> {
               child: ListView.builder(
                 primary: false,
                 padding: const EdgeInsets.only(bottom: 24),
-                itemCount: clientesConEnvios.length,
+                itemCount: clientesFiltrados.length,
                 itemBuilder: (context, index) {
-                  final nombre = clientesConEnvios[index];
+                  final nombre = clientesFiltrados[index];
                   final bolsas = envios[nombre] ?? const <Bolsa>[];
                   final totalBolsasCliente = bolsas.length;
                   final seleccion = _seleccionados[nombre];
