@@ -26,15 +26,25 @@ class _AppShellState extends State<AppShell> {
   bool _modalCerrarJornada = false;
   bool _modalCerrarTotales = false;
   ({String nombre, List<int>? indices})? _despacharConfirmar;
+  String? _mensajeSistema;
+  bool _mensajeVisible = false;
+  final _jornadaController = TextEditingController();
 
-  void _toast(String text) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(text),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+  void _mostrarMensaje(String text) {
+    setState(() {
+      _mensajeSistema = text;
+      _mensajeVisible = true;
+    });
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted && _mensajeSistema == text) {
+        setState(() => _mensajeVisible = false);
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted && !_mensajeVisible) {
+            setState(() => _mensajeSistema = null);
+          }
+        });
+      }
+    });
   }
 
   Future<void> _showValoresDialog(String nombre) async {
@@ -102,7 +112,7 @@ class _AppShellState extends State<AppShell> {
           onConfirmar: () {
             context.read<TotalesState>().eliminarCliente();
             setState(() => _modalEliminarCliente = false);
-            _toast('✓ Cliente eliminado');
+            _mostrarMensaje('Cliente eliminado');
           },
         ),
         if (_modalEliminarValor)
@@ -112,44 +122,28 @@ class _AppShellState extends State<AppShell> {
             onConfirmar: () {
               context.read<TotalesState>().eliminarValorSeleccionado();
               setState(() => _modalEliminarValor = false);
-              _toast('✓ Valor eliminado');
+              _mostrarMensaje('Valor eliminado');
             },
           ),
         if (_modalCerrarJornada)
           _buildOverlayConfirmar(
             titulo:
-                'Se generarán bolsas con las ventas actuales y se limpiarán los contadores del día. ¿Continuar?',
+                'Se generarán los totales y se limpiarán los valores de esta ventana. ¿Continuar?',
             onCancelar: () => setState(() => _modalCerrarJornada = false),
             onConfirmar: () async {
               final st = context.read<TotalesState>();
-              final cantidadBolsas = st.contarBolsasCierreJornada();
+              final cantidadTotales = st.contarBolsasCierreJornada();
               await st.cerrarJornada();
               if (!mounted) return;
               setState(() => _modalCerrarJornada = false);
-              _toast(
-                cantidadBolsas > 0
-                    ? 'Se generaron $cantidadBolsas bolsa${cantidadBolsas != 1 ? 's' : ''}'
+              _mostrarMensaje(
+                cantidadTotales > 0
+                    ? 'Se gener${cantidadTotales != 1 ? 'aron' : 'ó'} $cantidadTotales total${cantidadTotales != 1 ? 'es' : ''}'
                     : 'Jornada cerrada',
               );
             },
           ),
-        if (_modalCerrarTotales)
-          _buildOverlayConfirmar(
-            titulo:
-                'Se enviarán los totales pendientes a la pantalla de envíos. ¿Continuar?',
-            onCancelar: () => setState(() => _modalCerrarTotales = false),
-            onConfirmar: () {
-              final st = context.read<TotalesState>();
-              final cantidad = st.cantidadTotalesPendientes;
-              st.cerrarTotales();
-              setState(() => _modalCerrarTotales = false);
-              _toast(
-                cantidad > 0
-                    ? '$cantidad cliente${cantidad != 1 ? 's' : ''} enviado${cantidad != 1 ? 's' : ''} a envíos'
-                    : 'Sin totales que cerrar',
-              );
-            },
-          ),
+        if (_modalCerrarTotales) _buildOverlayCerrarTotales(),
         if (_despacharConfirmar != null)
           _buildOverlayConfirmar(
             titulo: _tituloDespachar(_despacharConfirmar!),
@@ -158,19 +152,186 @@ class _AppShellState extends State<AppShell> {
               final d = _despacharConfirmar!;
               context.read<TotalesState>().despachar(d.nombre, indices: d.indices);
               setState(() => _despacharConfirmar = null);
-              _toast('Envío marcado como realizado');
+              _mostrarMensaje('Envío marcado como realizado');
             },
           ),
+        if (_mensajeSistema != null) _buildMensajeSistema(),
       ],
+    );
+  }
+
+  Widget _buildMensajeSistema() {
+    return Positioned.fill(
+      child: IgnorePointer(
+        ignoring: !_mensajeVisible,
+        child: GestureDetector(
+          onTap: () {
+            setState(() => _mensajeVisible = false);
+            Future.delayed(const Duration(milliseconds: 300), () {
+              if (mounted && !_mensajeVisible) {
+                setState(() => _mensajeSistema = null);
+              }
+            });
+          },
+          child: AnimatedOpacity(
+            opacity: _mensajeVisible ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOut,
+            child: Container(
+              color: Colors.black26,
+              alignment: Alignment.center,
+              child: AnimatedScale(
+                scale: _mensajeVisible ? 1.0 : 0.8,
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOutBack,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.card,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0x4D2A6BA0)),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 16,
+                          offset: Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.check_circle, color: AppColors.success, size: 28),
+                          const SizedBox(width: 14),
+                          Flexible(
+                            child: Text(
+                              _mensajeSistema!,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.text,
+                                decoration: TextDecoration.none,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOverlayCerrarTotales() {
+    return Material(
+      color: Colors.black54,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0x4D2A6BA0)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Se enviarán los totales pendientes a la pantalla de envíos. ¿Continuar?',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.text,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _jornadaController,
+                      style: const TextStyle(color: AppColors.text, fontSize: 15),
+                      decoration: InputDecoration(
+                        hintText: 'Nombre de la jornada...',
+                        hintStyle: const TextStyle(color: AppColors.textMuted),
+                        filled: true,
+                        fillColor: AppColors.input,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: AppColors.border),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: AppColors.border),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _roundIconBtn(
+                          color: AppColors.danger,
+                          icon: Icons.close,
+                          onPressed: () {
+                            _jornadaController.clear();
+                            setState(() => _modalCerrarTotales = false);
+                          },
+                        ),
+                        const SizedBox(width: 16),
+                        _roundIconBtn(
+                          color: AppColors.success,
+                          icon: Icons.check,
+                          onPressed: () {
+                            final st = context.read<TotalesState>();
+                            final cantidad = st.cantidadTotalesPendientes;
+                            final nombre = _jornadaController.text.trim();
+                            st.nombreJornadaPendiente = nombre.isNotEmpty ? nombre : st.nombreJornadaPendiente;
+                            st.cerrarTotales();
+                            _jornadaController.clear();
+                            setState(() => _modalCerrarTotales = false);
+                            _mostrarMensaje(
+                              cantidad > 0
+                                  ? '$cantidad cliente${cantidad != 1 ? 's' : ''} enviado${cantidad != 1 ? 's' : ''} a envíos'
+                                  : 'Sin totales que cerrar',
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
   String _tituloDespachar(({String nombre, List<int>? indices}) d) {
     final idx = d.indices;
     if (idx == null || idx.isEmpty) {
-      return '¿Marcar todas las bolsas de ${d.nombre} como enviadas?';
+      return '¿Marcar todos los pedidos de ${d.nombre} como enviados?';
     }
-    return '¿Marcar ${idx.length} bolsa(s) de ${d.nombre} como enviadas?';
+    return '¿Marcar ${idx.length} pedido${idx.length != 1 ? 's' : ''} de ${d.nombre} como enviado${idx.length != 1 ? 's' : ''}?';
   }
 
   Widget _buildOverlayConfirmar({
@@ -379,7 +540,7 @@ class _AppShellState extends State<AppShell> {
       onAgregarValor: (valor, esDetalle) {
         context.read<TotalesState>().agregarValor(valor, esDetalle);
         setState(() => _modalValores = false);
-        _toast('Valor agregado: ${formatMoney(valor)}');
+        _mostrarMensaje('Valor agregado: ${formatMoney(valor)}');
       },
     );
   }

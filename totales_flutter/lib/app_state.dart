@@ -8,22 +8,30 @@ import 'services/sync_service.dart';
 const _storageKey = 'totales_app_data';
 
 class Bolsa {
-  Bolsa({required this.fecha, required this.cantidadItems, required this.montoTotal});
+  Bolsa({
+    required this.fecha,
+    required this.cantidadItems,
+    required this.montoTotal,
+    this.jornada = '',
+  });
 
   final String fecha;
   final int cantidadItems;
   final int montoTotal;
+  final String jornada;
 
   Map<String, dynamic> toJson() => {
         'fecha': fecha,
         'cantidadItems': cantidadItems,
         'montoTotal': montoTotal,
+        'jornada': jornada,
       };
 
   factory Bolsa.fromJson(Map<String, dynamic> j) => Bolsa(
         fecha: j['fecha'] as String,
         cantidadItems: (j['cantidadItems'] as num).toInt(),
         montoTotal: (j['montoTotal'] as num).toInt(),
+        jornada: (j['jornada'] as String?) ?? '',
       );
 }
 
@@ -40,6 +48,11 @@ class TotalesState extends ChangeNotifier {
   ({String nombre, int indice})? valorSeleccionado;
   Map<String, List<Bolsa>> enviosPendientes = {};
   Map<String, int> totalesPendientes = {};
+  Map<String, int> totalesCantidades = {};
+  String nombreJornadaPendiente = '';
+  Map<String, int> pagosRealizados = {};
+  Map<String, String> notasClientes = {};
+  Map<String, String> telefonosClientes = {};
 
   bool _hydrated = false;
 
@@ -101,6 +114,11 @@ class TotalesState extends ChangeNotifier {
         [];
     enviosPendientes = _parseEnvios(data['enviosPendientes']);
     totalesPendientes = _parseTotalesPendientes(data['totalesPendientes']);
+    totalesCantidades = _parseTotalesPendientes(data['totalesCantidades']);
+    nombreJornadaPendiente = (data['nombreJornadaPendiente'] as String?) ?? '';
+    pagosRealizados = _parseTotalesPendientes(data['pagosRealizados']);
+    notasClientes = _parseNotas(data['notasClientes']);
+    telefonosClientes = _parseNotas(data['telefonosClientes']);
     clienteSeleccionado = null;
     valorSeleccionado = null;
   }
@@ -143,6 +161,15 @@ class TotalesState extends ChangeNotifier {
     return m;
   }
 
+  Map<String, String> _parseNotas(dynamic v) {
+    if (v == null) return {};
+    final m = <String, String>{};
+    (v as Map<String, dynamic>).forEach((k, val) {
+      if (val is String && val.isNotEmpty) m[k] = val;
+    });
+    return m;
+  }
+
   Future<void> _persist() async {
     if (!_hydrated) return;
     try {
@@ -153,6 +180,11 @@ class TotalesState extends ChangeNotifier {
         'clienteOrden': clienteOrden,
         'historialClientes': historialClientes,
         'totalesPendientes': totalesPendientes,
+        'totalesCantidades': totalesCantidades,
+        'nombreJornadaPendiente': nombreJornadaPendiente,
+        'pagosRealizados': pagosRealizados,
+        'notasClientes': notasClientes,
+        'telefonosClientes': telefonosClientes,
         'enviosPendientes': enviosPendientes.map(
           (k, v) => MapEntry(
             k,
@@ -283,12 +315,14 @@ class TotalesState extends ChangeNotifier {
     final nextClientes = Map<String, List<int>>.from(clientes);
     final nextDetalles = Map<String, List<bool>>.from(detalles);
     final nextTotales = Map<String, int>.from(totalesPendientes);
+    final nextCantidades = Map<String, int>.from(totalesCantidades);
 
     for (final nombre in clientes.keys.toList()) {
       final valores = clientes[nombre] ?? [];
       if (valores.isEmpty) continue;
       final montoTotal = valores.fold<int>(0, (a, b) => a + b);
       nextTotales[nombre] = (nextTotales[nombre] ?? 0) + montoTotal;
+      nextCantidades[nombre] = (nextCantidades[nombre] ?? 0) + valores.length;
       nextClientes.remove(nombre);
       nextDetalles.remove(nombre);
     }
@@ -296,6 +330,7 @@ class TotalesState extends ChangeNotifier {
     clientes = nextClientes;
     detalles = nextDetalles;
     totalesPendientes = nextTotales;
+    totalesCantidades = nextCantidades;
     clienteSeleccionado = null;
     valorSeleccionado = null;
     _persist();
@@ -309,6 +344,13 @@ class TotalesState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void eliminarTotalPendiente(String nombre) {
+    totalesPendientes.remove(nombre);
+    totalesCantidades.remove(nombre);
+    _persist();
+    notifyListeners();
+  }
+
   void cerrarTotales() {
     final fecha = DateTime.now().toIso8601String().split('T').first;
     final nextEnvios = Map<String, List<Bolsa>>.from(enviosPendientes);
@@ -316,21 +358,75 @@ class TotalesState extends ChangeNotifier {
     for (final entry in totalesPendientes.entries) {
       final nombre = entry.key;
       final monto = entry.value;
+      final cantidad = totalesCantidades[nombre] ?? 1;
       final bolsa = Bolsa(
         fecha: fecha,
-        cantidadItems: 1,
+        cantidadItems: cantidad,
         montoTotal: monto,
+        jornada: nombreJornadaPendiente,
       );
       nextEnvios[nombre] = [...(nextEnvios[nombre] ?? []), bolsa];
     }
 
     totalesPendientes = {};
+    totalesCantidades = {};
+    nombreJornadaPendiente = '';
     enviosPendientes = nextEnvios;
     _persist();
     notifyListeners();
   }
 
   int get cantidadTotalesPendientes => totalesPendientes.length;
+
+  int totalDeudaCliente(String nombre) {
+    final bolsas = enviosPendientes[nombre] ?? [];
+    return bolsas.fold<int>(0, (a, b) => a + b.montoTotal);
+  }
+
+  int totalPagadoCliente(String nombre) => pagosRealizados[nombre] ?? 0;
+
+  int saldoPendienteCliente(String nombre) =>
+      totalDeudaCliente(nombre) - totalPagadoCliente(nombre);
+
+  bool clienteEstaPagado(String nombre) => saldoPendienteCliente(nombre) <= 0;
+
+  void registrarPago(String nombre, int monto) {
+    if (monto <= 0) return;
+    pagosRealizados[nombre] = (pagosRealizados[nombre] ?? 0) + monto;
+    _persist();
+    notifyListeners();
+  }
+
+  void guardarNota(String nombre, String nota) {
+    if (nota.trim().isEmpty) {
+      notasClientes.remove(nombre);
+    } else {
+      notasClientes[nombre] = nota.trim();
+    }
+    _persist();
+    notifyListeners();
+  }
+
+  /// Retorna null si se guardó correctamente, o el nombre del cliente
+  /// que ya tiene ese número si está duplicado.
+  String? guardarTelefono(String nombre, String telefono) {
+    if (telefono.trim().isEmpty) {
+      telefonosClientes.remove(nombre);
+      _persist();
+      notifyListeners();
+      return null;
+    }
+    final num = telefono.trim();
+    for (final entry in telefonosClientes.entries) {
+      if (entry.key != nombre && entry.value == num) {
+        return entry.key;
+      }
+    }
+    telefonosClientes[nombre] = num;
+    _persist();
+    notifyListeners();
+    return null;
+  }
 
   void despachar(String nombre, {List<int>? indices}) {
     if (!enviosPendientes.containsKey(nombre)) return;
@@ -339,6 +435,8 @@ class TotalesState extends ChangeNotifier {
         indices.isEmpty ||
         indices.length >= bolsas.length) {
       enviosPendientes.remove(nombre);
+      pagosRealizados.remove(nombre);
+      notasClientes.remove(nombre);
     } else {
       final set = indices.toSet();
       final remaining = <Bolsa>[];
@@ -347,6 +445,8 @@ class TotalesState extends ChangeNotifier {
       }
       if (remaining.isEmpty) {
         enviosPendientes.remove(nombre);
+        pagosRealizados.remove(nombre);
+        notasClientes.remove(nombre);
       } else {
         enviosPendientes[nombre] = remaining;
       }
