@@ -1,6 +1,6 @@
 # Totales (Flutter)
 
-Versión Flutter de la app de totales por cliente, cierre de jornada (bolsas) y gestión de envíos pendientes. Misma lógica que `totales-react-native` (persistencia en `shared_preferences`, sincronización opcional al cerrar jornada).
+App Flutter de gestión de clientes, totales por jornada y envíos pendientes. Persistencia local con `shared_preferences` y sincronización opcional al cerrar jornada.
 
 ## Requisitos
 
