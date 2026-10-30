@@ -354,6 +354,7 @@ class TotalesState extends ChangeNotifier {
   void cerrarTotales() {
     final fecha = DateTime.now().toIso8601String().split('T').first;
     final nextEnvios = Map<String, List<Bolsa>>.from(enviosPendientes);
+    final eventosSync = <Map<String, dynamic>>[];
 
     for (final entry in totalesPendientes.entries) {
       final nombre = entry.key;
@@ -366,7 +367,17 @@ class TotalesState extends ChangeNotifier {
         jornada: nombreJornadaPendiente,
       );
       nextEnvios[nombre] = [...(nextEnvios[nombre] ?? []), bolsa];
+      eventosSync.add({
+        'estado': 'Pendiente',
+        'cliente': nombre,
+        'jornada': nombreJornadaPendiente,
+        'paquetes': 1,
+        'articulos': cantidad,
+        'monto': monto,
+      });
     }
+
+    syncEnvios(eventosSync);
 
     totalesPendientes = {};
     totalesCantidades = {};
@@ -393,6 +404,16 @@ class TotalesState extends ChangeNotifier {
   void registrarPago(String nombre, int monto) {
     if (monto <= 0) return;
     pagosRealizados[nombre] = (pagosRealizados[nombre] ?? 0) + monto;
+    syncEnvios([
+      {
+        'estado': 'Pagado',
+        'cliente': nombre,
+        'jornada': '',
+        'paquetes': 0,
+        'articulos': 0,
+        'monto': monto,
+      },
+    ]);
     _persist();
     notifyListeners();
   }
@@ -431,14 +452,34 @@ class TotalesState extends ChangeNotifier {
   void despachar(String nombre, {List<int>? indices}) {
     if (!enviosPendientes.containsKey(nombre)) return;
     final bolsas = enviosPendientes[nombre]!;
-    if (indices == null ||
+    final despacharTodos = indices == null ||
         indices.isEmpty ||
-        indices.length >= bolsas.length) {
+        indices.length >= bolsas.length;
+    final set = despacharTodos
+        ? bolsas.asMap().keys.toSet()
+        : indices.toSet();
+    final eventosSync = <Map<String, dynamic>>[];
+
+    for (var i = 0; i < bolsas.length; i++) {
+      if (!set.contains(i)) continue;
+      final bolsa = bolsas[i];
+      eventosSync.add({
+        'estado': 'Despachado',
+        'cliente': nombre,
+        'jornada': bolsa.jornada,
+        'paquetes': 1,
+        'articulos': bolsa.cantidadItems,
+        'monto': bolsa.montoTotal,
+      });
+    }
+
+    syncEnvios(eventosSync);
+
+    if (despacharTodos) {
       enviosPendientes.remove(nombre);
       pagosRealizados.remove(nombre);
       notasClientes.remove(nombre);
     } else {
-      final set = indices.toSet();
       final remaining = <Bolsa>[];
       for (var i = 0; i < bolsas.length; i++) {
         if (!set.contains(i)) remaining.add(bolsas[i]);

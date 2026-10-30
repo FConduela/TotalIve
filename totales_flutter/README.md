@@ -29,7 +29,7 @@ flutter pub get
 flutter run
 ```
 
-Configura la URL del script en `lib/config.dart` (`syncCierreJornadaUrl`).
+Configura la URL del script en `lib/config.dart` (`syncCierreJornadaUrl`). Guía completa en `google-apps-script/README.md`.
 
 ## Estructura principal
 
